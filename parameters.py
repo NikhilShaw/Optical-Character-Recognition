@@ -12,7 +12,7 @@ letters = [letter for letter in CHAR_VECTOR]
 num_classes = len(letters) + 1
 img_w, img_h, channel = 197, 197, 3
 
-# Network 
+# network 
 batch_size = 128
 val_batch_size = 16
 max_text_len = 9

@@ -27,6 +27,7 @@ class text_image_generator:
 		self.texts = []
 		self.del_list=[]
 
+	# loading mat file and extracting image tags
 	def create_tags(self, mat_file, tags_file, data_key):
 		if os.path.isfile(tags_file):
 			return
@@ -39,6 +40,7 @@ class text_image_generator:
 			tags_fo.write("{} {}\n".format(image_path, gt))
 		tags_fo.close()
 
+	# returns dict with  key: img path ;value: label
 	def image_path_and_label(self, mat_file, data_key):
 		img_path_2_label={}
 		data_dir = sio.loadmat(mat_file)
@@ -47,7 +49,6 @@ class text_image_generator:
 			image_path = gts[i][0][0]
 			gt = gts[i][1][0]
 			img_path_2_label[self.img_dirpath+(image_path.split('/')[-1])]= gt
-			#print("key: "+ self.img_dirpath+(image_path.split('/')[-1]))
 		return img_path_2_label
 
 	def preprocess(self):
@@ -61,7 +62,7 @@ class text_image_generator:
 			print("error[1]")
 
 	def build_data(self):
-		print("Loading and preprocessing" + str(self.n) +" images")
+		print("Loading and preprocessing " + str(self.n) +" images")
 		self.preprocess()
 		for i, img_file in enumerate(self.img_dir):
 			img= cv2.imread(self.img_dirpath + "/" + img_file)
@@ -69,15 +70,15 @@ class text_image_generator:
 			img = img.astype(np.float32)
 			img = (img / 255.0) * 2.0 - 1.0
 			self.imgs[i, :, :, :] = img
-			try:
-				self.texts.append(self.image_path_2_label[self.img_dirpath + img_file])
-			except:
-				print("Key Error: " + self.img_dirpath + img_file)
+			self.texts.append(self.image_path_2_label[self.img_dirpath + img_file])
+		
+		# if all the images were loaded then true
 		if len(self.texts) == self.n:
 			print(self.n, " Image Loading finish...")
 		else:
 			print(self.n, len(self.texts))
 
+	# return random sample for a batch
 	def next_sample(self):
 		self.cur_index+=1
 		if self.cur_index>=self.n:
@@ -86,6 +87,7 @@ class text_image_generator:
 		r_index= self.indexes[self.cur_index]
 		return self.imgs[r_index], self.texts[r_index]
 
+	# returns a batch 
 	def next_batch(self):
 		while True:
 			x_data= np.ones([self.batch_size, self.img_w, self.img_h, channel])
@@ -98,12 +100,10 @@ class text_image_generator:
 				x_data[i]= img
 				y_data[i]= pad_sequences([text_to_labels(text)], maxlen= max_text_len, padding='post', value=-1)
 				label_length= len(y_data[i])
+				# converting into numpy array
 				x_data[i]= np.array(x_data[i])
 				y_data[i]= np.array(y_data[i])
-			print("x")
-			print(x_data.shape)
-			print("y")
-			print(y_data.shape)
+			
 			inputs= {'the_input': x_data, 'the_labels': y_data, 'input_length': input_length, 'label_length': label_length}
 			outputs= {'ctc': np.zeros([self.batch_size])}
 			yield inputs, outputs
